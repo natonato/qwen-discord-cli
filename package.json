@@ -1,0 +1,27 @@
+{
+  "name": "qwen-discord-bridge",
+  "version": "1.0.0",
+  "description": "Bridge Qwen CLI with Discord for seamless AI assistant integration",
+  "main": "dist/index.js",
+  "bin": {
+    "qwen-discord": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "keywords": ["qwen", "discord", "ai", "cli", "bridge"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.16.0",
+    "dotenv": "^16.4.5",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.5.0",
+    "ts-node": "^10.9.0"
+  }
+}
