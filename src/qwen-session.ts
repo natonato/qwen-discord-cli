@@ -1,4 +1,7 @@
 import { spawn } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 export interface QwenSessionOptions {
   workingDir: string;
@@ -96,6 +99,56 @@ export class QwenSession {
         resolve({ response, error });
       });
     });
+  }
+
+  /**
+   * Clear session data and start fresh
+   * Deletes the Qwen session JSONL files for the current working directory
+   */
+  clear(): void {
+    try {
+      // Qwen stores sessions at ~/.qwen/projects/<sanitized-cwd>/chats/*.jsonl
+      const qwenDir = path.join(os.homedir(), '.qwen', 'projects');
+
+      if (!fs.existsSync(qwenDir)) {
+        console.log(`[QwenSession] No Qwen projects directory found`);
+        return;
+      }
+
+      // Find the project folder matching the working directory
+      const projectFolders = fs.readdirSync(qwenDir);
+      let targetPath: string | null = null;
+
+      for (const folder of projectFolders) {
+        const fullPath = path.join(qwenDir, folder);
+        const chatsPath = path.join(fullPath, 'chats');
+
+        if (fs.existsSync(chatsPath)) {
+          targetPath = chatsPath;
+          break;
+        }
+      }
+
+      if (!targetPath) {
+        console.log(`[QwenSession] No session files found for current project`);
+        return;
+      }
+
+      // Delete all JSONL files in the chats directory
+      const files = fs.readdirSync(targetPath);
+      let deletedCount = 0;
+
+      for (const file of files) {
+        if (file.endsWith('.jsonl')) {
+          fs.unlinkSync(path.join(targetPath, file));
+          deletedCount++;
+        }
+      }
+
+      console.log(`[QwenSession] Deleted ${deletedCount} session file(s)`);
+    } catch (err) {
+      console.error(`[QwenSession] Error clearing session: ${err}`);
+    }
   }
 
   /**

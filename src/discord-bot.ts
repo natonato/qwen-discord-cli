@@ -47,6 +47,48 @@ export class DiscordBot {
   }
 
   /**
+   * Handle commands that start with !
+   */
+  private async handleCommand(message: Message, content: string): Promise<void> {
+    const channel = message.channel as TextChannel;
+    const parts = content.split(' ');
+    const command = parts[0].toLowerCase();
+
+    if (command === '!help') {
+      const helpText = [
+        '**Available Commands:**',
+        '',
+        '`!help` — Show this help message',
+        '`!session clear` — Clear Qwen session context and start fresh',
+      ].join('\n');
+      await channel.send(helpText);
+      return;
+    }
+
+    if (command === '!session') {
+      const subcommand = parts[1]?.toLowerCase();
+
+      if (subcommand === 'clear') {
+        console.log(`[DiscordBot] Session clear requested by ${message.author.tag}`);
+        this.qwenSession.clear();
+        await channel.send('✅ Session has been cleared. Starting fresh!');
+        return;
+      }
+    }
+
+    // If not a recognized command, treat as regular message
+    console.log(`[DiscordBot] Received message from ${message.author.tag}: ${content.substring(0, 50)}...`);
+
+    this.messageQueue.push({
+      userId: message.author.id,
+      content,
+      channel: channel,
+    });
+
+    this.processQueue();
+  }
+
+  /**
    * Handle incoming Discord messages
    */
   private async handleMessage(message: Message): Promise<void> {
@@ -67,6 +109,11 @@ export class DiscordBot {
 
     const content = message.content.trim();
     if (!content) return;
+
+    // Handle commands
+    if (content.startsWith('!')) {
+      return this.handleCommand(message, content);
+    }
 
     console.log(`[DiscordBot] Received message from ${message.author.tag}: ${content.substring(0, 50)}...`);
 
