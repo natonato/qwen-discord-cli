@@ -1,10 +1,12 @@
 import { Client, GatewayIntentBits, TextChannel, Message } from 'discord.js';
+import { AISession, AISendResult } from './ai-session';
 import { QwenSession } from './qwen-session';
+import { GeminiSession } from './gemini-session';
 import { Config } from './config';
 
 export class DiscordBot {
   private client: Client;
-  private qwenSession: QwenSession;
+  private aiSession: AISession;
   private isProcessing = false;
   private messageQueue: { userId: string; content: string; channel: TextChannel }[] = [];
 
@@ -19,12 +21,21 @@ export class DiscordBot {
       ],
     });
 
-    // Create Qwen session
-    this.qwenSession = new QwenSession({
-      workingDir: config.qwenWorkingDir,
-      approvalMode: config.qwenApprovalMode,
+    // Create AI session based on provider
+    const sessionOptions = {
+      workingDir: config.workingDir,
+      approvalMode: config.approvalMode,
       debug: config.logLevel === 'debug',
-    });
+      timeoutMs: config.aiTimeoutMs,
+    };
+
+    if (config.aiProvider === 'gemini') {
+      this.aiSession = new GeminiSession(sessionOptions);
+      console.log(`[DiscordBot] Using Gemini as AI provider`);
+    } else {
+      this.aiSession = new QwenSession(sessionOptions);
+      console.log(`[DiscordBot] Using Qwen as AI provider`);
+    }
 
     this.setupEventHandlers();
   }
@@ -59,7 +70,9 @@ export class DiscordBot {
         '**Available Commands:**',
         '',
         '`!help` — Show this help message',
-        '`!session clear` — Clear Qwen session context and start fresh',
+        '`!session clear` — Clear AI session context and start fresh',
+        '',
+        `**Current Provider:** ${this.config.aiProvider}`,
       ].join('\n');
       await channel.send(helpText);
       return;
@@ -70,7 +83,7 @@ export class DiscordBot {
 
       if (subcommand === 'clear') {
         console.log(`[DiscordBot] Session clear requested by ${message.author.tag}`);
-        this.qwenSession.clear();
+        this.aiSession.clear();
         await channel.send('✅ Session has been cleared. Starting fresh!');
         return;
       }
@@ -139,27 +152,30 @@ export class DiscordBot {
 
     console.log(`[DiscordBot] Processing message from user ${userId}, remaining queue: ${this.messageQueue.length}`);
 
-    try {
-      // Show typing indicator
-      await channel.sendTyping();
+    // Send "generating" status message first
+    let statusMessage = await channel.send(`🔄 "${content.length > 50 ? content.substring(0, 50) + '...' : content}" 응답 생성중...`);
 
-      // Send to Qwen and get response
-      const { response, error } = await this.qwenSession.send(content);
+    try {
+      // Send to AI provider and get response
+      const { response, error } = await this.aiSession.send(content);
 
       if (error) {
-        console.error(`[DiscordBot] Qwen error: ${error}`);
-        await channel.send(`⚠️ Qwen error:\n\`\`\`${error.substring(0, 1800)}\`\`\``);
+        console.error(`[DiscordBot] AI provider error: ${error}`);
+        await statusMessage.edit(`⚠️ AI provider error:\n\`\`\`${error.substring(0, 1800)}\`\`\``);
       } else if (response) {
         const messages = this.splitMessage(response);
-        for (const msg of messages) {
-          await channel.send(msg);
+        // Edit the status message with the first chunk
+        await statusMessage.edit(messages[0]);
+        // Send remaining chunks as new messages
+        for (let i = 1; i < messages.length; i++) {
+          await channel.send(messages[i]);
         }
       } else {
-        await channel.send('⚠️ Qwen returned an empty response.');
+        await statusMessage.edit('⚠️ AI provider returned an empty response.');
       }
     } catch (err) {
       console.error(`[DiscordBot] Error processing message: ${err}`);
-      await channel.send('⚠️ An error occurred while processing your request.');
+      await statusMessage.edit('⚠️ An error occurred while processing your request.');
     } finally {
       this.isProcessing = false;
       // Process next message after a short delay
@@ -212,19 +228,19 @@ export class DiscordBot {
    * Start the Discord bot and Qwen session
    */
   async start(): Promise<void> {
-    console.log('[DiscordBot] Starting Qwen session...');
-    await this.qwenSession.start();
+    console.log(`[DiscordBot] Starting AI session (${this.config.aiProvider})...`);
+    await this.aiSession.start();
 
     console.log('[DiscordBot] Logging in to Discord...');
     await this.client.login(this.config.discordBotToken);
   }
 
   /**
-   * Stop the bot and kill Qwen session
+   * Stop the bot and kill AI session
    */
   stop(): void {
     console.log('[DiscordBot] Shutting down...');
-    this.qwenSession.kill();
+    this.aiSession.kill();
     this.client.destroy();
   }
 }
