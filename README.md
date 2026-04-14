@@ -1,14 +1,15 @@
-# Qwen-Discord Bridge
+# AI-Discord Bridge
 
-Bridge Qwen CLI with Discord channels for seamless AI assistant integration.
+Bridge AI CLI (Qwen/Gemini) with Discord channels for seamless AI assistant integration.
 
 ## Features
 
-- 🔗 Connect Qwen CLI to any Discord channel
-- 💬 Bidirectional communication: Discord → Qwen → Discord
-- 🔄 Persistent Qwen session with conversation context
+- 🔗 Connect Qwen CLI or Gemini CLI to any Discord channel
+- 💬 Bidirectional communication: Discord → AI → Discord
+- 🔄 Persistent AI session with conversation context
 - ⚙️ Configurable via `.env` file
 - 🚀 Simple CLI interface
+- 🤖 Multi-provider support (Qwen, Gemini)
 
 ## Setup
 
@@ -45,7 +46,8 @@ Create `.env` with your values:
 ```env
 DISCORD_BOT_TOKEN=your_discord_bot_token_here
 ALLOWED_CHANNEL_IDS=your_channel_id_here
-QWEN_APPROVAL_MODE=yolo
+AI_PROVIDER=qwen
+APPROVAL_MODE=yolo
 ```
 
 You can use `.env.example` in this repo as a template.
@@ -62,18 +64,30 @@ You can use `.env.example` in this repo as a template.
 6. Invite the bot to your server using OAuth2 URL generator (select `bot` scope with `Send Messages` and `Read Message History` permissions)
 7. Get the target channel ID (Developer Mode → Right-click channel → Copy ID) and set `ALLOWED_CHANNEL_IDS` in your project's `.env`
 
-### 6. Run
+### 6. Install AI CLI Provider
+
+**For Qwen:**
+```bash
+npm install -g @qwen-code/qwen-code
+```
+
+**For Gemini:**
+```bash
+npm install -g @anthropic/gemini-cli
+```
+
+### 7. Run
 
 From your project directory (where `.env` is located), run:
 
 ```bash
-qwen-discord start
+ai-discord start
 ```
 
 Or from anywhere if installed globally:
 
 ```bash
-qwen-discord start
+ai-discord start
 ```
 
 ## Usage
@@ -81,16 +95,16 @@ qwen-discord start
 Once the bot is running, simply send messages in the configured Discord channel. The bot will:
 
 1. Receive your message
-2. Send it to Qwen CLI
-3. Return Qwen's response back to the channel
+2. Send it to the configured AI CLI (Qwen or Gemini)
+3. Return the AI's response back to the channel
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
-| `qwen-discord start` | Start the bridge bot |
+| `ai-discord start` | Start the bridge bot |
 | `!help` | Show available commands |
-| `!session clear` | Clear Qwen session context and start fresh |
+| `!session clear` | Clear AI session context and start fresh |
 
 ## Configuration
 
@@ -99,8 +113,9 @@ Once the bot is running, simply send messages in the configured Discord channel.
 | `DISCORD_BOT_TOKEN` | Discord bot token (required) | - |
 | `ALLOWED_CHANNEL_IDS` | Allowed channel IDs, comma-separated (required) | - |
 | `ALLOWED_USER_IDS` | Allowed user IDs, comma-separated | All users |
-| `QWEN_APPROVAL_MODE` | Qwen approval mode | `yolo` |
-| `QWEN_WORKING_DIR` | Qwen working directory | Current directory |
+| `AI_PROVIDER` | AI CLI provider: `qwen` or `gemini` | `qwen` |
+| `APPROVAL_MODE` | AI approval mode | `yolo` |
+| `WORKING_DIR` | AI working directory | Current directory |
 | `LOG_LEVEL` | Log level | `info` |
 
 ### Approval Modes
@@ -113,7 +128,7 @@ Once the bot is running, simply send messages in the configured Discord channel.
 
 ```
 ┌─────────────┐     ┌──────────────┐     ┌─────────────┐
-│  Discord    │────▶│  Bridge Bot  │────▶│  Qwen CLI   │
+│  Discord    │────▶│  Bridge Bot  │────▶│  AI CLI     │
 │  Channel    │◀────│  (Node.js)   │◀────│  (spawn)    │
 └─────────────┘     └──────────────┘     └─────────────┘
      │                    │                    │
