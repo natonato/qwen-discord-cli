@@ -1,10 +1,10 @@
 {
   "name": "qwen-discord-bridge",
   "version": "1.0.0",
-  "description": "Bridge Qwen CLI with Discord for seamless AI assistant integration",
+  "description": "Bridge AI CLI (Qwen/Gemini) with Discord for seamless AI assistant integration",
   "main": "dist/index.js",
   "bin": {
-    "qwen-discord": "dist/index.js"
+    "ai-discord": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
