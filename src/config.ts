@@ -12,8 +12,10 @@ export interface Config {
   discordBotToken: string;
   allowedChannelIds: string[];
   allowedUserIds: string[];
-  qwenApprovalMode: 'yolo' | 'auto_edit' | 'default';
-  qwenWorkingDir: string;
+  aiProvider: 'qwen' | 'gemini';
+  approvalMode: 'yolo' | 'auto_edit' | 'default';
+  workingDir: string;
+  aiTimeoutMs: number;
   logLevel: 'debug' | 'info' | 'warn' | 'error';
 }
 
@@ -25,8 +27,10 @@ export function loadConfig(): Config {
   const allowedUserIds = process.env.ALLOWED_USER_IDS
     ? process.env.ALLOWED_USER_IDS.split(',').map(id => id.trim()).filter(id => id.length > 0)
     : [];
-  const qwenApprovalMode = (process.env.QWEN_APPROVAL_MODE as Config['qwenApprovalMode']) || 'yolo';
-  const qwenWorkingDir = process.env.QWEN_WORKING_DIR || process.cwd();
+  const aiProvider = (process.env.AI_PROVIDER as Config['aiProvider']) || 'qwen';
+  const approvalMode = (process.env.APPROVAL_MODE as Config['approvalMode']) || 'yolo';
+  const workingDir = process.env.WORKING_DIR || process.cwd();
+  const aiTimeoutMs = parseInt(process.env.AI_TIMEOUT_MS || '300000', 10); // default 5 minutes
   const logLevel = (process.env.LOG_LEVEL as Config['logLevel']) || 'info';
 
   if (!discordBotToken) {
@@ -37,16 +41,26 @@ export function loadConfig(): Config {
     throw new Error('ALLOWED_CHANNEL_IDS is not set in .env file');
   }
 
-  if (!['yolo', 'auto_edit', 'default'].includes(qwenApprovalMode)) {
-    throw new Error('QWEN_APPROVAL_MODE must be one of: yolo, auto_edit, default');
+  if (!['qwen', 'gemini'].includes(aiProvider)) {
+    throw new Error('AI_PROVIDER must be one of: qwen, gemini');
+  }
+
+  if (!['yolo', 'auto_edit', 'default'].includes(approvalMode)) {
+    throw new Error('APPROVAL_MODE must be one of: yolo, auto_edit, default');
+  }
+
+  if (isNaN(aiTimeoutMs) || aiTimeoutMs < 10000) {
+    throw new Error('AI_TIMEOUT_MS must be a number >= 10000 (10 seconds)');
   }
 
   return {
     discordBotToken,
     allowedChannelIds,
     allowedUserIds,
-    qwenApprovalMode,
-    qwenWorkingDir,
+    aiProvider,
+    approvalMode,
+    workingDir,
+    aiTimeoutMs,
     logLevel,
   };
 }
